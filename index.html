@@ -1,10 +1,12 @@
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Informasi Organisasi Cloud</title>
+  <title>Sistem Informasi Organisasi</title>
   
+  <!-- Kumpulan Library -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,797 +14,349 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
+  
+  <!-- Layar Pendeteksi Error (Akan muncul jika ada salah ketik) -->
+  <div id="error-screen" style="display: none; padding: 20px; background: #fee2e2; color: #991b1b; border-bottom: 4px solid #ef4444; font-family: monospace;">
+    <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">⚠️ Terjadi Kesalahan Kode (Syntax Error)</h2>
+    <p>Sepertinya ada tanda baca (koma/kutip) yang hilang saat copy-paste kode Firebase.</p>
+    <div id="error-message" style="margin-top: 10px; background: #fff; padding: 10px; border-radius: 5px;"></div>
+  </div>
+
   <div id="root"></div>
+
+  <!-- Script Pendeteksi Error -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.getElementById('error-screen').style.display = 'block';
+      document.getElementById('error-message').innerText = "Detail: " + message + " (Baris: " + lineno + ")";
+    };
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, createContext, useContext } = React;
 
-    // --- STREAMING_CHUNK:Mock Data (Hanya untuk Inisialisasi Pertama Kali)... ---
+    // Data Bawaan (Akan ditimpa oleh data Cloud jika ada)
     const INITIAL_USERS = [
       { id: 1, nim: '1011001', name: 'Budi (Admin)', role: 'admin', division: 'Inti', position: 'Ketua', password: 'admin', photo: 'https://placehold.co/150x150/4f46e5/ffffff?text=BD' },
       { id: 2, nim: '1011002', name: 'Siti (Anggota)', role: 'user', division: 'Humas', position: 'Staff', password: 'user', photo: 'https://placehold.co/150x150/ec4899/ffffff?text=ST' },
-      { id: 3, nim: '1011003', name: 'Agus (Anggota)', role: 'user', division: 'Kaderisasi', position: 'Kadiv', password: 'user', photo: 'https://placehold.co/150x150/10b981/ffffff?text=AG' },
     ];
-    const INITIAL_SCHEDULES = [
-      { id: 1, title: 'Rapat Kerja Bulanan', date: '2026-10-20', time: '15:00', location: 'Ruang Sidang 1', description: 'Membahas proker bulan depan.' },
-    ];
-    const INITIAL_FINANCE = {
-      balance: 1500000,
-      weeklyDues: 10000,
-      transactions: [{ id: 1, type: 'income', amount: 50000, date: '2026-10-15', desc: 'Uang Kas Awal' }],
-      duesStatus: { 2: [true, false, false, false], 3: [false, false, false, false] }
-    };
-
+    const INITIAL_FINANCE = { balance: 1500000, weeklyDues: 10000, transactions: [{ id: 1, type: 'income', amount: 50000, date: '2026-10-15', desc: 'Uang Kas Awal' }], duesStatus: { 2: [true, false, false, false] } };
+    const INITIAL_SCHEDULES = [{ id: 1, title: 'Rapat Kerja Bulanan', date: '2026-10-20', time: '15:00', location: 'Ruang Sidang 1', description: 'Membahas proker.' }];
+    
     const AppContext = createContext();
 
-    // --- STREAMING_CHUNK:Main Application Logic & Firebase Init... ---
     function App() {
       const [currentUser, setCurrentUser] = useState(null);
       const [firebaseReady, setFirebaseReady] = useState(false);
       const [firebaseError, setFirebaseError] = useState(false);
       
-      // State Global
-      const [users, setUsers] = useState([]);
-      const [schedules, setSchedules] = useState([]);
-      const [materials, setMaterials] = useState([]);
-      const [finance, setFinance] = useState({ balance: 0, transactions: [], duesStatus: {} });
-      const [docs, setDocs] = useState([{ id: 1, title: 'Pelantikan', url: 'https://placehold.co/600x400/2563eb/ffffff?text=Pelantikan' }]);
+      const [users, setUsers] = useState(INITIAL_USERS);
+      const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
+      const [finance, setFinance] = useState(INITIAL_FINANCE);
       const [activeQR, setActiveQR] = useState(false);
       const [attendanceRecord, setAttendanceRecord] = useState({});
 
-      // Objek Firebase Internal
       const [dbInfo, setDbInfo] = useState(null);
 
       useEffect(() => {
-        const loadFirebase = async () => {
+        const initDB = async () => {
           try {
-            // Mengambil library Firebase dari Server Google
+            // ========================================================
+            // KODE FIREBASE SUDAH DIMASUKKAN DENGAN SEMPURNA DI SINI
+            // ========================================================
+            const myFirebaseConfig = {
+              apiKey: "AIzaSyCe4dOrr6ChY6C94ud7eReqLPpG6K1jlck",
+              authDomain: "web-organisasi-1.firebaseapp.com",
+              projectId: "web-organisasi-1",
+              storageBucket: "web-organisasi-1.firebasestorage.app",
+              messagingSenderId: "830803587379",
+              appId: "1:830803587379:web:023b24404c81544a624e46",
+              measurementId: "G-LQQZXVJLE9"
+            };
+            // ========================================================
+
             const appModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
             const authModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
             const firestoreModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
 
-            // ========================================================
-            // ⚠️ TEMPAT PASTE KODE FIREBASE ANDA ⚠️
-            // Ganti isi myFirebaseConfig di bawah ini dengan kode dari Tahap 2!
-            // ========================================================
-            const myFirebaseConfig = {
-  apiKey: "AIzaSyCe4dOrr6ChY6C94ud7eReqLPpG6K1jlck",
-  authDomain: "web-organisasi-1.firebaseapp.com",
-  projectId: "web-organisasi-1",
-  storageBucket: "web-organisasi-1.firebasestorage.app",
-  messagingSenderId: "830803587379",
-  appId: "1:830803587379:web:023b24404c81544a624e46",
-  measurementId: "G-LQQZXVJLE9"
-};
-               
-            };
-            // ========================================================
-
-            // Logika untuk mendeteksi Environment (Platform/Github Pages)
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'web-organisasi-app';
-            const configToUse = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
-
-            if (Object.keys(configToUse).length === 0) {
-              setFirebaseError(true);
-              return;
-            }
-
-            // Inisialisasi
-            const app = appModule.initializeApp(configToUse);
+            const app = appModule.initializeApp(myFirebaseConfig);
             const auth = authModule.getAuth(app);
             const db = firestoreModule.getFirestore(app);
+            
+            // Login rahasia di latar belakang agar diizinkan menyimpan data
+            await authModule.signInAnonymously(auth);
 
-            // Login Anonim (Wajib untuk database)
-            if (typeof __initial_auth_token !== 'undefined') {
-                await authModule.signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await authModule.signInAnonymously(auth);
-            }
-
-            setDbInfo({ db, auth, firestoreModule, appId });
+            setDbInfo({ db, auth, firestoreModule, appId: myFirebaseConfig.projectId });
             setFirebaseReady(true);
-          } catch (error) {
-            console.error("Gagal memuat Firebase:", error);
+          } catch (err) {
+            console.error("Firebase Gagal:", err);
             setFirebaseError(true);
           }
         };
-        loadFirebase();
+        initDB();
       }, []);
 
-      // --- STREAMING_CHUNK:Data Synchronization (Realtime Listener)... ---
+      // Sinkronisasi Firebase (Real-time)
       useEffect(() => {
-        if (!firebaseReady || !dbInfo?.auth.currentUser) return;
+        if (!firebaseReady || !dbInfo) return;
+        const { db, firestoreModule } = dbInfo;
+        const docRef = firestoreModule.doc(db, 'organisasi', 'data_utama');
 
-        const { db, firestoreModule, appId } = dbInfo;
-        const { doc, onSnapshot, setDoc } = firestoreModule;
-        
-        // Path Database
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'org_data', 'state');
-
-        // Mendengarkan perubahan data secara realtime
-        const unsubscribe = onSnapshot(docRef, (snapshot) => {
+        const unsubscribe = firestoreModule.onSnapshot(docRef, (snapshot) => {
           if (snapshot.exists()) {
             const data = snapshot.data();
             if (data.users) setUsers(data.users);
             if (data.finance) setFinance(data.finance);
             if (data.schedules) setSchedules(data.schedules);
-            if (data.materials) setMaterials(data.materials);
             if (data.attendanceRecord) setAttendanceRecord(data.attendanceRecord);
             if (data.activeQR !== undefined) setActiveQR(data.activeQR);
           } else {
-            // Jika database baru dibuat, isi dengan data mock
-            setDoc(docRef, {
-              users: INITIAL_USERS,
-              finance: INITIAL_FINANCE,
-              schedules: INITIAL_SCHEDULES,
-              materials: [],
-              attendanceRecord: {},
-              activeQR: false
-            }, { merge: true });
+            // Jika database masih kosong, isi dengan data bawaan
+            firestoreModule.setDoc(docRef, { users: INITIAL_USERS, finance: INITIAL_FINANCE, schedules: INITIAL_SCHEDULES, attendanceRecord: {}, activeQR: false });
           }
-        }, (error) => {
-          console.error("Kesalahan sinkronisasi data:", error);
         });
-
         return () => unsubscribe();
       }, [firebaseReady, dbInfo]);
 
-      // --- STREAMING_CHUNK:Global Update Helper... ---
-      // Fungsi ini digunakan untuk memperbarui data ke Firebase
-      const updateGlobalState = async (key, value) => {
-        if (!dbInfo || !dbInfo.auth.currentUser) return;
-        const { db, firestoreModule, appId } = dbInfo;
-        const docRef = firestoreModule.doc(db, 'artifacts', appId, 'public', 'data', 'org_data', 'state');
-        try {
-          await firestoreModule.setDoc(docRef, { [key]: value }, { merge: true });
-        } catch(e) {
-          console.error("Gagal menyimpan ke Cloud:", e);
+      const updateGlobal = async (key, value) => {
+        if (!dbInfo) return;
+        const { db, firestoreModule } = dbInfo;
+        const docRef = firestoreModule.doc(db, 'organisasi', 'data_utama');
+        try { 
+          await firestoreModule.setDoc(docRef, { [key]: value }, { merge: true }); 
+        } catch (e) { 
+          console.error("Gagal simpan:", e); 
         }
       };
 
       const handleLogin = (nim, password) => {
         const user = users.find(u => u.nim === nim && u.password === password);
-        if (user) {
-          setCurrentUser(user);
-          return true;
-        }
+        if (user) { setCurrentUser(user); return true; }
         return false;
       };
 
-      const handleLogout = () => setCurrentUser(null);
-
-      // Wrapper untuk context agar komponen di bawahnya bisa mengupdate Cloud
-      const contextValue = {
-        currentUser, handleLogout,
-        users, setUsers: (v) => updateGlobalState('users', v),
-        schedules, setSchedules: (v) => updateGlobalState('schedules', v),
-        materials, setMaterials: (v) => updateGlobalState('materials', v),
-        finance, setFinance: (v) => updateGlobalState('finance', v),
-        docs,
-        activeQR, setActiveQR: (v) => updateGlobalState('activeQR', v),
-        attendanceRecord, setAttendanceRecord: (v) => updateGlobalState('attendanceRecord', v),
-      };
-
       return (
-        <AppContext.Provider value={contextValue}>
-          {currentUser ? <MainLayout /> : <LoginScreen onLogin={handleLogin} firebaseError={firebaseError} isReady={firebaseReady} />}
+        <AppContext.Provider value={{
+          currentUser, handleLogout: () => setCurrentUser(null),
+          users, setUsers: (v) => { setUsers(v); updateGlobal('users', v); },
+          schedules, setSchedules: (v) => { setSchedules(v); updateGlobal('schedules', v); },
+          finance, setFinance: (v) => { setFinance(v); updateGlobal('finance', v); },
+          activeQR, setActiveQR: (v) => { setActiveQR(v); updateGlobal('activeQR', v); },
+          attendanceRecord, setAttendanceRecord: (v) => { setAttendanceRecord(v); updateGlobal('attendanceRecord', v); }
+        }}>
+          {currentUser ? <MainLayout /> : <LoginScreen onLogin={handleLogin} fError={firebaseError} fReady={firebaseReady} />}
         </AppContext.Provider>
       );
     }
 
-    // --- STREAMING_CHUNK:Login Screen with Cloud Status... ---
-    function LoginScreen({ onLogin, firebaseError, isReady }) {
+    function LoginScreen({ onLogin, fError, fReady }) {
       const [nim, setNim] = useState('');
-      const [password, setPassword] = useState('');
-      const [errorMsg, setErrorMsg] = useState('');
+      const [pass, setPass] = useState('');
+      const [err, setErr] = useState('');
 
       const submit = (e) => {
         e.preventDefault();
-        if (!isReady) return;
-        if (!onLogin(nim, password)) {
-          setErrorMsg('NIM atau Password salah!');
-        }
+        if (!onLogin(nim, pass)) setErr('NIM atau Password salah!');
       };
 
       return (
         <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-            
-            <div className="text-center mb-8 mt-4">
-              <div className="bg-indigo-50 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner">
-                <i className="fa-solid fa-cloud-arrow-up text-indigo-600 text-4xl"></i>
-              </div>
-              <h1 className="text-2xl font-black text-slate-800">Portal Cloud</h1>
-              <p className="text-slate-500 mt-2 text-sm font-medium">Sistem Informasi Organisasi</p>
+          <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"><i className="fa-solid fa-users text-white text-2xl"></i></div>
+              <h1 className="text-2xl font-black text-slate-800">Portal Organisasi</h1>
+              <p className="text-slate-500 text-sm mt-1">Sistem Informasi Terpadu</p>
             </div>
             
-            {firebaseError && (
-              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-xl">
-                <p className="text-orange-700 text-sm font-bold"><i className="fa-solid fa-triangle-exclamation mr-2"></i> Konfigurasi Cloud Belum Diisi!</p>
-                <p className="text-orange-600 text-xs mt-1">Silakan ikuti instruksi untuk menyalin firebaseConfig ke dalam file HTML ini.</p>
+            {fReady && (
+              <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl mb-4 text-sm font-bold border border-emerald-200 text-center">
+                <i className="fa-solid fa-cloud-check mr-2"></i> Tersambung ke Cloud (Online)
               </div>
             )}
+            {fError && (
+              <div className="bg-yellow-50 text-yellow-700 p-4 rounded-xl mb-4 text-sm font-bold border border-yellow-200">
+                <i className="fa-solid fa-triangle-exclamation mr-2"></i> Mode Offline Aktif (Cloud Gagal).
+              </div>
+            )}
+            {err && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm font-bold text-center">{err}</div>}
 
-            {!isReady && !firebaseError && (
-              <div className="text-center py-4 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold animate-pulse">
-                Menghubungkan ke Cloud...
-              </div>
-            )}
-            
-            {errorMsg && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm font-bold text-center border border-red-100">{errorMsg}</div>}
-            
-            <form onSubmit={submit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">NIM / ID Anggota</label>
-                <div className="relative">
-                  <i className="fa-solid fa-user absolute left-4 top-3.5 text-slate-400"></i>
-                  <input type="text" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" value={nim} onChange={e => setNim(e.target.value)} required placeholder="Contoh: 1011001" disabled={!isReady} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Password Akses</label>
-                <div className="relative">
-                  <i className="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400"></i>
-                  <input type="password" className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" disabled={!isReady} />
-                </div>
-              </div>
-              <button type="submit" disabled={!isReady} className="w-full bg-indigo-600 text-white font-black py-3.5 rounded-xl hover:bg-indigo-700 active:scale-95 transition shadow-lg shadow-indigo-200 mt-2 disabled:opacity-50">
-                Masuk ke Dashboard <i className="fa-solid fa-arrow-right ml-2"></i>
-              </button>
+            <form onSubmit={submit} className="space-y-4">
+              <div><label className="block text-sm font-bold text-slate-700 mb-1">NIM / ID</label><input type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none" value={nim} onChange={e=>setNim(e.target.value)} required placeholder="Contoh: 1011001" /></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-1">Password</label><input type="password" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" /></div>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-black py-3.5 rounded-xl hover:bg-indigo-700 transition shadow-lg mt-2">Masuk</button>
             </form>
           </div>
         </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Main Shell Structure... ---
     function MainLayout() {
       const { currentUser, handleLogout } = useContext(AppContext);
-      const [activeTab, setActiveTab] = useState('dashboard');
-      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-      const navItems = [
+      const [tab, setTab] = useState('dashboard');
+      
+      const navs = [
         { id: 'dashboard', label: 'Dashboard', icon: 'fa-house' },
         { id: 'absensi', label: 'Absensi', icon: 'fa-qrcode' },
         { id: 'kas', label: 'Keuangan', icon: 'fa-wallet' },
         { id: 'anggota', label: 'Anggota', icon: 'fa-users' },
-        { id: 'jadwal', label: 'Jadwal', icon: 'fa-calendar' },
-        { id: 'materi', label: 'Materi', icon: 'fa-file-lines' },
       ];
 
       return (
-        <div className="min-h-screen bg-[#f8fafc] flex flex-col md:flex-row">
-          {/* Header Mobile */}
-          <div className="md:hidden bg-indigo-700 text-white p-4 flex justify-between items-center shadow-lg z-20 sticky top-0">
-            <div className="flex items-center space-x-3 font-black text-xl tracking-tight">
-              <i className="fa-solid fa-cloud"></i> <span>OrgCloud</span>
-            </div>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-indigo-800/50 rounded-xl active:scale-95">
-              <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-xl`}></i>
-            </button>
+        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+          <div className="md:hidden bg-indigo-700 text-white p-4 flex justify-between items-center shadow-lg">
+            <span className="font-black text-xl"><i className="fa-solid fa-cloud mr-2"></i>OrgCloud</span>
+            <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded-lg font-bold text-sm"><i className="fa-solid fa-power-off"></i></button>
           </div>
 
-          {/* Sidebar Navigation */}
-          <div className={`fixed md:static inset-y-0 left-0 w-72 bg-white shadow-2xl z-10 transform transition-transform duration-300 ease-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} md:h-screen sticky top-0 border-r border-slate-100`}>
-            <div className="p-8 hidden md:flex items-center space-x-3 text-indigo-700 bg-indigo-50/50">
-              <div className="bg-indigo-600 p-2.5 rounded-xl shadow-md"><i className="fa-solid fa-cloud text-white text-xl"></i></div>
-              <span className="text-2xl font-black tracking-tighter">OrgCloud</span>
-            </div>
-            
-            <div className="p-6 border-b border-slate-100 md:hidden mt-16 text-center bg-slate-50">
-              <div className="relative inline-block mb-3">
-                <img src={currentUser.photo} alt="Profile" className="w-20 h-20 rounded-full mx-auto border-4 border-white shadow-md object-cover" />
-                <div className="absolute bottom-0 right-0 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
-              </div>
-              <p className="font-black text-slate-800 text-lg">{currentUser.name}</p>
-              <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full uppercase font-black mt-1 inline-block">{currentUser.role}</span>
-            </div>
-
-            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-              <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Menu Utama</p>
-              {navItems.map(item => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center space-x-4 px-4 py-3.5 rounded-2xl transition-all duration-200 ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-[1.02]' : 'text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 font-semibold'}`}>
-                  <div className={`w-8 text-center ${activeTab === item.id ? 'opacity-100' : 'opacity-70'}`}><i className={`fa-solid ${item.icon} text-lg`}></i></div>
-                  <span className={`${activeTab === item.id ? 'font-bold' : ''}`}>{item.label}</span>
+          <div className="hidden md:flex flex-col w-64 bg-white shadow-xl h-screen sticky top-0">
+            <div className="p-6 text-indigo-700 font-black text-2xl border-b"><i className="fa-solid fa-cloud mr-2"></i>OrgCloud</div>
+            <nav className="flex-1 p-4 space-y-2">
+              {navs.map(n => (
+                <button key={n.id} onClick={()=>setTab(n.id)} className={`w-full flex items-center p-3 rounded-xl transition ${tab===n.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 font-bold'}`}>
+                  <i className={`fa-solid ${n.icon} w-6 text-center mr-2`}></i> {n.label}
                 </button>
               ))}
             </nav>
-
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-              <div className="hidden md:flex items-center space-x-3 mb-5 p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-                 <img src={currentUser.photo} alt="Profile" className="w-12 h-12 rounded-full object-cover shadow-sm" />
-                 <div className="overflow-hidden flex-1">
-                   <p className="text-sm font-black text-slate-800 truncate">{currentUser.name}</p>
-                   <p className="text-xs font-bold text-indigo-600 capitalize">{currentUser.role}</p>
-                 </div>
-              </div>
-              <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 px-4 py-3.5 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 active:scale-95 transition-all font-black">
-                <i className="fa-solid fa-right-from-bracket"></i> <span>Keluar Sistem</span>
-              </button>
+            <div className="p-4 border-t">
+              <button onClick={handleLogout} className="w-full bg-red-50 text-red-600 font-bold p-3 rounded-xl hover:bg-red-100 transition"><i className="fa-solid fa-power-off mr-2"></i> Keluar</button>
             </div>
           </div>
 
-          {/* Area Konten Utama */}
-          <div className="flex-1 overflow-y-auto w-full">
-             <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto">
-               {activeTab === 'dashboard' && <ViewDashboard />}
-               {activeTab === 'absensi' && <ViewAbsensi />}
-               {activeTab === 'kas' && <ViewKas />}
-               {activeTab === 'anggota' && <ViewAnggota />}
-               {activeTab === 'jadwal' && <ViewJadwal />}
-               {activeTab === 'materi' && <ViewMateri />}
-             </div>
-          </div>
-        </div>
-      );
-    }
-
-    // --- STREAMING_CHUNK:Dashboard Views... ---
-    function ViewDashboard() {
-      const { users, docs, finance } = useContext(AppContext);
-      return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Ikhtisar Organisasi</h2>
-            <p className="text-slate-500 font-medium mt-1">Data sinkronisasi realtime dari Cloud.</p>
+          <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+            {tab === 'dashboard' && <ViewDashboard setTab={setTab}/>}
+            {tab === 'absensi' && <ViewAbsensi />}
+            {tab === 'kas' && <ViewKas />}
+            {tab === 'anggota' && <ViewAnggota />}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-5 hover:shadow-md transition">
-              <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl shadow-inner"><i className="fa-solid fa-users text-3xl"></i></div>
-              <div><p className="text-slate-500 text-xs font-black uppercase tracking-wider mb-1">Total Anggota</p><h3 className="text-4xl font-black text-slate-800">{users.length}</h3></div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-5 hover:shadow-md transition">
-              <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl shadow-inner"><i className="fa-solid fa-wallet text-3xl"></i></div>
-              <div><p className="text-slate-500 text-xs font-black uppercase tracking-wider mb-1">Saldo Kas</p><h3 className="text-2xl font-black text-slate-800">Rp {finance.balance.toLocaleString('id-ID')}</h3></div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center space-x-5 hover:shadow-md transition">
-              <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl shadow-inner"><i className="fa-solid fa-image text-3xl"></i></div>
-              <div><p className="text-slate-500 text-xs font-black uppercase tracking-wider mb-1">Dokumentasi</p><h3 className="text-4xl font-black text-slate-800">{docs.length}</h3></div>
-            </div>
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t flex justify-around p-3 z-50">
+             {navs.map(n => (
+                <button key={n.id} onClick={()=>setTab(n.id)} className={`flex flex-col items-center p-2 rounded-xl ${tab===n.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  <i className={`fa-solid ${n.icon} text-xl mb-1`}></i>
+                  <span className="text-[10px] font-bold">{n.label}</span>
+                </button>
+             ))}
           </div>
+        </div>
+      );
+    }
 
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-              <h3 className="font-black text-slate-800 text-lg"><i className="fa-solid fa-images text-indigo-500 mr-2"></i> Galeri Kegiatan</h3>
+    function ViewDashboard({setTab}) {
+      const { users, finance, currentUser } = useContext(AppContext);
+      return (
+        <div className="space-y-6 pb-20 md:pb-0">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
+            <h2 className="text-2xl md:text-3xl font-black mb-1">Halo, {currentUser.name}! 👋</h2>
+            <p className="text-indigo-100 font-medium text-sm md:text-base">Selamat datang di dashboard organisasi.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div onClick={()=>setTab('anggota')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer">
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-users text-xl"></i></div>
+              <h3 className="text-2xl font-black text-slate-800">{users.length}</h3><p className="text-xs font-bold text-slate-400">Total Anggota</p>
             </div>
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {docs.map(doc => (
-                <div key={doc.id} className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group cursor-pointer">
-                  <img src={doc.url} alt={doc.title} className="w-full h-48 object-cover group-hover:scale-110 transition duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                    <p className="text-white font-bold text-lg">{doc.title}</p>
-                  </div>
-                </div>
-              ))}
+            <div onClick={()=>setTab('kas')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-wallet text-xl"></i></div>
+              <h3 className="text-xl font-black text-slate-800">Rp {finance.balance.toLocaleString('id')}</h3><p className="text-xs font-bold text-slate-400">Saldo Kas</p>
             </div>
           </div>
         </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Attendance System... ---
     function ViewAbsensi() {
       const { currentUser, users, activeQR, setActiveQR, attendanceRecord, setAttendanceRecord } = useContext(AppContext);
-      const [scanResult, setScanResult] = useState(null);
-
-      const toggleAttendance = (userId) => {
-        if (currentUser.role !== 'admin') return;
-        setAttendanceRecord({ ...attendanceRecord, [userId]: !attendanceRecord[userId] });
-      };
-
-      const handleScanQR = () => {
-        if (activeQR) {
-          setAttendanceRecord({ ...attendanceRecord, [currentUser.id]: true });
-          setScanResult('✅ Hadir tercatat di Cloud!');
-          setTimeout(() => setScanResult(null), 3000);
-        } else {
-          setScanResult('❌ Sesi QR belum dibuka admin!');
-          setTimeout(() => setScanResult(null), 3000);
-        }
+      
+      const handleScan = () => {
+        if(activeQR) {
+           setAttendanceRecord({...attendanceRecord, [currentUser.id]: true});
+           alert("✅ Berhasil Absen!");
+        } else alert("❌ Sesi belum dibuka Admin!");
       };
 
       return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">Sistem Presensi</h2>
-              <p className="text-slate-500 font-medium mt-1">Presensi berbasis Cloud realtime.</p>
-            </div>
-            {currentUser.role === 'admin' && (
-              <button onClick={() => setActiveQR(!activeQR)} className={`px-5 py-3 rounded-2xl font-black text-white shadow-lg transition-all active:scale-95 ${activeQR ? 'bg-rose-500 shadow-rose-200 hover:bg-rose-600' : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700'}`}>
-                <i className={`fa-solid ${activeQR ? 'fa-lock' : 'fa-qrcode'} mr-2`}></i> {activeQR ? 'Tutup Sesi Presensi' : 'Buka QR Presensi'}
-              </button>
-            )}
+        <div className="space-y-6 pb-20 md:pb-0">
+          <div className="flex justify-between items-center"><h2 className="text-2xl font-black">Absensi</h2>
+          {currentUser.role === 'admin' && <button onClick={()=>setActiveQR(!activeQR)} className={`px-4 py-2 text-white font-bold rounded-xl ${activeQR?'bg-red-500':'bg-indigo-600'}`}>{activeQR?'Tutup QR':'Buka QR'}</button>}</div>
+          
+          <div className="bg-white p-6 rounded-3xl border text-center">
+            {activeQR ? <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=Hadir" className="mx-auto mb-4 border-4 border-indigo-100 rounded-xl"/> : <div className="w-40 h-40 bg-slate-100 border-2 border-dashed rounded-xl mx-auto mb-4 flex items-center justify-center text-slate-400"><i className="fa-solid fa-qrcode text-4xl"></i></div>}
+            {currentUser.role === 'user' && <button onClick={handleScan} className="w-full bg-slate-800 text-white font-black py-3 rounded-xl"><i className="fa-solid fa-camera mr-2"></i> Scan QR Absen</button>}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center flex flex-col justify-center items-center h-full">
-              <h3 className="font-black text-slate-800 mb-6 text-xl">QR Absensi</h3>
-              {activeQR ? (
-                <div className="border-4 border-indigo-100 rounded-3xl p-4 inline-block bg-white shadow-inner mb-6 animate-in zoom-in duration-300">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=AbsensiCloud" alt="QR" className="mx-auto w-full h-auto rounded-xl" />
-                </div>
-              ) : (
-                <div className="w-48 h-48 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 flex items-center justify-center mx-auto text-slate-400 flex-col mb-6">
-                  <i className="fa-solid fa-qrcode text-5xl mb-3 opacity-50"></i><span className="font-bold text-sm">QR Ditutup</span>
-                </div>
-              )}
-              {currentUser.role === 'user' && (
-                <div className="w-full">
-                  <button onClick={handleScanQR} className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-200 active:scale-95 transition">
-                    <i className="fa-solid fa-camera mr-2"></i> Scan QR Sekarang
-                  </button>
-                  {scanResult && <p className={`mt-4 text-sm font-black ${scanResult.includes('✅') ? 'text-emerald-600' : 'text-rose-600'} animate-bounce`}>{scanResult}</p>}
-                </div>
-              )}
-            </div>
-
-            <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-              <div className="px-6 py-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="font-black text-slate-800 text-lg">Daftar Kehadiran Realtime</h3>
-                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">Live</span>
+          <div className="bg-white rounded-3xl border overflow-hidden">
+            <div className="p-4 bg-slate-50 font-black border-b">Daftar Kehadiran</div>
+            {users.map(u => (
+              <div key={u.id} className="flex justify-between items-center p-4 border-b last:border-0">
+                <div className="font-bold">{u.name}</div>
+                <div>{attendanceRecord[u.id] ? <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">Hadir</span> : <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs font-black">Belum</span>}</div>
               </div>
-              <div className="overflow-x-auto p-2 flex-1">
-                <table className="w-full text-left text-sm">
-                  <thead><tr className="text-slate-400 font-black uppercase tracking-wider text-xs border-b border-slate-100"><th className="p-4">Anggota</th><th className="p-4 text-center">Status</th>{currentUser.role === 'admin' && <th className="p-4 text-center">Aksi Manual</th>}</tr></thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {users.map(u => (
-                      <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-4 flex items-center space-x-4">
-                          <img src={u.photo} className="w-10 h-10 rounded-full object-cover shadow-sm" />
-                          <div><p className="font-black text-slate-800">{u.name}</p><p className="text-xs font-bold text-slate-400">{u.nim}</p></div>
-                        </td>
-                        <td className="p-4 text-center">
-                          {attendanceRecord[u.id] ? 
-                            <span className="inline-flex items-center justify-center bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-xl text-xs font-black"><i className="fa-solid fa-check mr-1.5"></i> Hadir</span> : 
-                            <span className="inline-flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 px-3 py-1.5 rounded-xl text-xs font-black"><i className="fa-solid fa-minus mr-1.5"></i> Belum</span>
-                          }
-                        </td>
-                        {currentUser.role === 'admin' && (
-                          <td className="p-4 text-center">
-                            <button onClick={() => toggleAttendance(u.id)} className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-xl font-black transition active:scale-95">Ubah</button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Finance & Treasury... ---
     function ViewKas() {
-      const { currentUser, finance, setFinance, users } = useContext(AppContext);
-      const [showQRIS, setShowQRIS] = useState(false);
-      const [formType, setFormType] = useState(null);
-      const [amount, setAmount] = useState('');
-      const [desc, setDesc] = useState('');
-
-      const handleAddTx = (e) => {
-        e.preventDefault();
-        const val = parseInt(amount);
-        if(val > 0) {
-          const newFinance = {
-            ...finance, 
-            balance: formType === 'income' ? finance.balance + val : finance.balance - val,
-            transactions: [{ id: Date.now(), type: formType, amount: val, date: new Date().toISOString().split('T')[0], desc }, ...finance.transactions]
-          };
-          setFinance(newFinance);
-          setFormType(null); setAmount(''); setDesc('');
-        }
-      };
-
-      const toggleDues = (userId, weekIdx) => {
-        if (currentUser.role !== 'admin') return;
-        const newStatus = [...(finance.duesStatus[userId] || [false, false, false, false])];
-        newStatus[weekIdx] = !newStatus[weekIdx];
-        setFinance({ ...finance, duesStatus: { ...finance.duesStatus, [userId]: newStatus } });
-      };
-
+      const { finance } = useContext(AppContext);
       return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Manajemen Kas</h2>
-            <p className="text-slate-500 font-medium mt-1">Transparansi keuangan tersimpan aman di Cloud.</p>
+        <div className="space-y-6 pb-20 md:pb-0">
+          <h2 className="text-2xl font-black">Kas Organisasi</h2>
+          <div className="bg-indigo-600 p-6 rounded-3xl text-white text-center shadow-lg">
+            <p className="text-indigo-200 font-bold text-sm">Total Saldo Kas</p>
+            <h3 className="text-4xl font-black mt-1">Rp {finance.balance.toLocaleString('id')}</h3>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-3xl shadow-xl text-white md:col-span-2 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-              <i className="fa-solid fa-wallet absolute right-6 bottom-4 text-7xl text-white/5 transform -rotate-12"></i>
-              
-              <div className="relative z-10">
-                <p className="text-slate-400 font-bold uppercase tracking-wider text-sm mb-2">Total Saldo Kas</p>
-                <h3 className="text-4xl sm:text-5xl font-black mb-6 tracking-tighter">Rp {finance.balance.toLocaleString('id-ID')}</h3>
-              </div>
-              
-              <div className="relative z-10 flex justify-between items-end border-t border-slate-700/50 pt-5 mt-auto">
-                 <div className="bg-slate-800/80 px-4 py-2 rounded-xl backdrop-blur-sm border border-slate-700">
-                   <p className="text-xs font-bold text-slate-300">Tagihan per minggu</p>
-                   <p className="text-sm font-black text-emerald-400">Rp {finance.weeklyDues.toLocaleString('id-ID')}</p>
-                 </div>
-                 {currentUser.role === 'user' && (
-                   <button onClick={() => setShowQRIS(true)} className="bg-white text-slate-900 px-5 py-3 rounded-xl text-sm font-black shadow-lg active:scale-95 transition flex items-center gap-2">
-                     <i className="fa-solid fa-qrcode"></i> Bayar QRIS
-                   </button>
-                 )}
-              </div>
-            </div>
-
-            {currentUser.role === 'admin' && (
-              <div className="flex flex-row md:flex-col gap-4">
-                <button onClick={() => setFormType('income')} className="flex-1 bg-white border border-slate-100 shadow-sm text-slate-800 p-6 rounded-3xl font-black flex flex-col items-center justify-center active:scale-95 transition hover:border-emerald-200 group">
-                  <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition"><i className="fa-solid fa-arrow-down text-2xl"></i></div>
-                  Pemasukan
-                </button>
-                <button onClick={() => setFormType('expense')} className="flex-1 bg-white border border-slate-100 shadow-sm text-slate-800 p-6 rounded-3xl font-black flex flex-col items-center justify-center active:scale-95 transition hover:border-rose-200 group">
-                  <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition"><i className="fa-solid fa-arrow-up text-2xl"></i></div>
-                  Pengeluaran
-                </button>
-              </div>
-            )}
+          <div className="text-center p-6 bg-white border rounded-3xl">
+             <p className="font-bold text-slate-500 mb-4">Bayar Kas via QRIS</p>
+             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=BayarKas" className="mx-auto border-4 border-slate-100 rounded-xl" />
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Tabel Tagihan */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-              <div className="p-6 bg-slate-50 border-b border-slate-100"><h3 className="font-black text-slate-800 text-lg">Status Pembayaran Kas</h3></div>
-              <div className="overflow-x-auto p-2 flex-1">
-                <table className="w-full text-left text-sm">
-                  <thead><tr className="text-slate-400 font-black uppercase text-xs border-b border-slate-100"><th className="p-4">Anggota</th><th className="p-4 text-center">W1</th><th className="p-4 text-center">W2</th><th className="p-4 text-center">W3</th><th className="p-4 text-center">W4</th></tr></thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {users.filter(u => u.role !== 'admin').map(user => {
-                      const st = finance.duesStatus[user.id] || [false,false,false,false];
-                      return (
-                        <tr key={user.id} className={currentUser.id === user.id ? 'bg-indigo-50/50' : ''}>
-                          <td className="p-4 font-bold text-slate-700">{user.name}</td>
-                          {[0,1,2,3].map(i => (
-                            <td key={i} className="p-4 text-center" onClick={() => toggleDues(user.id, i)}>
-                              <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center cursor-pointer transition-colors ${st[i] ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}>
-                                <i className={`fa-solid ${st[i] ? 'fa-check' : 'fa-minus'} text-sm`}></i>
-                              </div>
-                            </td>
-                          ))}
-                        </tr>
-                      )})}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Riwayat */}
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 h-96 flex flex-col">
-              <div className="p-6 bg-slate-50 border-b border-slate-100"><h3 className="font-black text-slate-800 text-lg">Riwayat Transaksi</h3></div>
-              <div className="p-4 overflow-y-auto flex-1 space-y-3">
-                {finance.transactions.map(tx => (
-                  <div key={tx.id} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl hover:shadow-sm transition">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type==='income'?'bg-emerald-50 text-emerald-600 border border-emerald-100':'bg-rose-50 text-rose-600 border border-rose-100'}`}><i className={`fa-solid ${tx.type==='income'?'fa-arrow-down':'fa-arrow-up'} text-lg`}></i></div>
-                      <div><p className="font-black text-slate-800">{tx.desc}</p><p className="text-xs font-bold text-slate-400 mt-0.5">{tx.date}</p></div>
-                    </div>
-                    <span className={`font-black tracking-tight ${tx.type==='income'?'text-emerald-600':'text-rose-600'}`}>{tx.type==='income'?'+':'-'} Rp {tx.amount.toLocaleString('id-ID')}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {showQRIS && (
-            <Modal title="Pembayaran Digital" onClose={() => setShowQRIS(false)}>
-               <div className="text-center p-4">
-                  <p className="text-slate-500 font-medium mb-6 text-sm">Scan menggunakan M-Banking atau E-Wallet (GoPay, OVO, Dana).</p>
-                  <div className="bg-slate-50 p-4 rounded-3xl inline-block border border-slate-100 shadow-sm mb-6">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=QRIS_KAS_CLOUD" className="mx-auto rounded-xl" />
-                  </div>
-                  <p className="font-black text-2xl text-slate-800 mb-1 tracking-tight">Kas Organisasi</p>
-                  <p className="text-sm font-bold text-slate-400 mb-8">NMID: ID1234567890</p>
-                  <button onClick={() => setShowQRIS(false)} className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black active:scale-95 transition shadow-lg shadow-slate-200">Tutup</button>
-               </div>
-            </Modal>
-          )}
-
-          {formType && currentUser.role === 'admin' && (
-            <Modal title={formType === 'income' ? 'Tambah Pemasukan' : 'Catat Pengeluaran'} onClose={() => setFormType(null)}>
-              <form onSubmit={handleAddTx} className="space-y-5 p-2">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Nominal (Rp)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-3.5 font-black text-slate-400">Rp</span>
-                    <input type="number" required value={amount} onChange={e=>setAmount(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none font-bold" placeholder="0"/>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Keterangan Transaksi</label>
-                  <input type="text" required value={desc} onChange={e=>setDesc(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none font-bold" placeholder="Contoh: Beli konsumsi"/>
-                </div>
-                <button type="submit" className={`w-full py-4 rounded-2xl font-black text-white mt-4 active:scale-95 shadow-lg ${formType==='income'?'bg-emerald-600 shadow-emerald-200':'bg-rose-600 shadow-rose-200'}`}>Simpan ke Cloud</button>
-              </form>
-            </Modal>
-          )}
         </div>
       );
     }
 
-    // --- STREAMING_CHUNK:Member Directory... ---
     function ViewAnggota() {
-      const { currentUser, users, setUsers } = useContext(AppContext);
-      const [search, setSearch] = useState('');
-      const [isEditing, setIsEditing] = useState(null);
+      const { users, currentUser, setUsers } = useContext(AppContext);
+      const [newMember, setNewMember] = useState(null);
 
-      const handleSave = (e) => {
+      const handleAdd = (e) => {
         e.preventDefault();
-        let newUsers;
-        if (isEditing.id) newUsers = users.map(u => u.id === isEditing.id ? isEditing : u);
-        else newUsers = [...users, { ...isEditing, id: Date.now() }];
-        setUsers(newUsers);
-        setIsEditing(null);
+        const id = Date.now();
+        setUsers([...users, { ...newMember, id, photo: `https://placehold.co/150x150/94a3b8/ffffff?text=${newMember.name.substring(0,2).toUpperCase()}` }]);
+        setNewMember(null);
       };
 
       return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">Direktori Anggota</h2>
-              <p className="text-slate-500 font-medium mt-1">Data pengurus dan anggota tersinkronisasi.</p>
-            </div>
-            <div className="flex gap-3">
-              <div className="relative w-full sm:w-64">
-                <i className="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
-                <input type="text" placeholder="Cari nama..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" />
-              </div>
-              {currentUser.role === 'admin' && <button onClick={() => setIsEditing({ name: '', nim: '', division: '', position: '', role: 'user', password: 'user', photo: 'https://placehold.co/150x150/94a3b8/ffffff?text=New' })} className="bg-slate-800 text-white w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg hover:bg-slate-900 active:scale-95 transition shrink-0"><i className="fa-solid fa-plus text-lg"></i></button>}
-            </div>
+        <div className="space-y-6 pb-20 md:pb-0">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Anggota</h2>
+            {currentUser.role === 'admin' && <button onClick={()=>setNewMember({ nim: '', name: '', role: 'user', division: '', position: 'Staff', password: 'user' })} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><i className="fa-solid fa-plus mr-1"></i> Tambah</button>}
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {users.filter(u => u.name.toLowerCase().includes(search.toLowerCase())).map(user => (
-              <div key={user.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center relative group hover:shadow-lg transition-all duration-300">
-                {currentUser.role === 'admin' && (
-                  <button onClick={() => setIsEditing(user)} className="absolute top-4 right-4 w-8 h-8 bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600 rounded-full flex items-center justify-center transition opacity-0 group-hover:opacity-100">
-                    <i className="fa-solid fa-pen text-xs"></i>
-                  </button>
-                )}
-                <img src={user.photo} className="w-24 h-24 rounded-full object-cover shadow-md mb-4 border-4 border-slate-50" />
-                <h3 className="font-black text-lg text-slate-800 leading-tight">{user.name}</h3>
-                <p className="text-xs font-bold text-slate-400 font-mono mt-1 mb-4">{user.nim}</p>
-                <div className="bg-indigo-50/50 w-full rounded-2xl p-3 border border-indigo-50">
-                  <div className="text-sm font-black text-indigo-700">{user.division}</div>
-                  <div className="text-xs font-bold text-slate-500 mt-0.5">{user.position}</div>
+
+          {newMember && (
+            <div className="bg-white p-4 rounded-2xl border mb-4">
+              <h3 className="font-bold mb-3 text-sm">Tambah Anggota Baru</h3>
+              <form onSubmit={handleAdd} className="space-y-3">
+                <input required placeholder="NIM / ID" className="w-full border p-2 rounded-lg text-sm" value={newMember.nim} onChange={e=>setNewMember({...newMember, nim: e.target.value})} />
+                <input required placeholder="Nama Lengkap" className="w-full border p-2 rounded-lg text-sm" value={newMember.name} onChange={e=>setNewMember({...newMember, name: e.target.value})} />
+                <input required placeholder="Divisi" className="w-full border p-2 rounded-lg text-sm" value={newMember.division} onChange={e=>setNewMember({...newMember, division: e.target.value})} />
+                <div className="flex gap-2">
+                   <button type="button" onClick={()=>setNewMember(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg text-sm">Batal</button>
+                   <button type="submit" className="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm">Simpan</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {users.map(u => (
+              <div key={u.id} className="bg-white p-4 rounded-2xl border flex items-center space-x-4">
+                <img src={u.photo} className="w-16 h-16 rounded-full object-cover" />
+                <div>
+                  <h3 className="font-black text-slate-800">{u.name}</h3>
+                  <p className="text-xs font-bold text-slate-400">{u.nim}</p>
+                  <p className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg inline-block mt-1 font-bold">{u.division}</p>
                 </div>
               </div>
             ))}
-          </div>
-
-          {isEditing && (
-            <Modal title={isEditing.id ? "Edit Profil Anggota" : "Tambah Anggota Baru"} onClose={() => setIsEditing(null)}>
-              <form onSubmit={handleSave} className="space-y-4 p-2">
-                <div className="flex justify-center mb-6 relative">
-                  <img src={isEditing.photo} className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-sm" />
-                  <div className="absolute bottom-0 bg-slate-800 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white cursor-pointer hover:scale-110 transition"><i className="fa-solid fa-camera text-xs"></i></div>
-                </div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Nama Lengkap</label><input required value={isEditing.name} onChange={e=>setIsEditing({...isEditing, name:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">NIM / ID</label><input required value={isEditing.nim} onChange={e=>setIsEditing({...isEditing, nim:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Divisi</label><input required value={isEditing.division} onChange={e=>setIsEditing({...isEditing, division:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Jabatan</label><input required value={isEditing.position} onChange={e=>setIsEditing({...isEditing, position:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Hak Akses</label>
-                    <select value={isEditing.role} onChange={e=>setIsEditing({...isEditing, role:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"><option value="user">Anggota</option><option value="admin">Admin</option></select>
-                  </div>
-                </div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Password Akun</label><input required value={isEditing.password} onChange={e=>setIsEditing({...isEditing, password:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                <button type="submit" className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black mt-6 shadow-lg active:scale-95 transition">Simpan ke Cloud</button>
-              </form>
-            </Modal>
-          )}
-        </div>
-      );
-    }
-
-    // --- STREAMING_CHUNK:Schedules & Materials... ---
-    function ViewJadwal() {
-      const { currentUser, schedules, setSchedules } = useContext(AppContext);
-      const [isEditing, setIsEditing] = useState(null);
-
-      const handleSave = (e) => {
-        e.preventDefault();
-        let newSchedules;
-        if (isEditing.id) newSchedules = schedules.map(s => s.id === isEditing.id ? isEditing : s);
-        else newSchedules = [...schedules, { ...isEditing, id: Date.now() }];
-        setSchedules(newSchedules);
-        setIsEditing(null);
-      };
-
-      return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-          <div className="flex justify-between items-end mb-8">
-            <div><h2 className="text-3xl font-black text-slate-800 tracking-tight">Agenda Kegiatan</h2><p className="text-slate-500 font-medium mt-1">Jadwal tersinkronisasi untuk semua anggota.</p></div>
-            {currentUser.role==='admin' && <button onClick={()=>setIsEditing({title:'',date:'',time:'',location:'',description:''})} className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-black text-sm shadow-lg shadow-indigo-200 active:scale-95 transition"><i className="fa-solid fa-plus mr-2"></i>Tambah</button>}
-          </div>
-          
-          <div className="space-y-5">
-            {schedules.sort((a,b) => new Date(a.date) - new Date(b.date)).map(s => (
-              <div key={s.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-start gap-6 hover:shadow-md transition group">
-                <div className="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl text-center min-w-[80px] border border-indigo-100/50">
-                  <p className="text-xs font-black uppercase tracking-widest mb-1">{new Date(s.date).toLocaleString('id',{month:'short'})}</p>
-                  <p className="text-3xl font-black leading-none">{new Date(s.date).getDate()}</p>
-                </div>
-                <div className="flex-1 pt-1">
-                  <h3 className="font-black text-xl text-slate-800 mb-1">{s.title}</h3>
-                  <p className="text-sm font-bold text-slate-400 mb-3 flex items-center gap-4">
-                    <span><i className="fa-regular fa-clock mr-1"></i> {s.time}</span>
-                    <span><i className="fa-solid fa-location-dot mr-1"></i> {s.location}</span>
-                  </p>
-                  <p className="text-sm bg-slate-50 p-4 rounded-2xl text-slate-600 font-medium leading-relaxed">{s.description}</p>
-                </div>
-                {currentUser.role==='admin' && <button onClick={()=>setIsEditing(s)} className="text-slate-300 hover:bg-slate-100 hover:text-indigo-600 p-3 rounded-xl transition opacity-0 group-hover:opacity-100"><i className="fa-solid fa-pen"></i></button>}
-              </div>
-            ))}
-            {schedules.length === 0 && <div className="text-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-slate-400 font-bold">Tidak ada jadwal mendatang.</div>}
-          </div>
-
-          {isEditing && (
-            <Modal title={isEditing.id ? "Edit Agenda" : "Agenda Baru"} onClose={()=>setIsEditing(null)}>
-              <form onSubmit={handleSave} className="space-y-4 p-2">
-                <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Nama Kegiatan</label><input required value={isEditing.title} onChange={e=>setIsEditing({...isEditing, title:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Tanggal</label><input type="date" required value={isEditing.date} onChange={e=>setIsEditing({...isEditing, date:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Waktu</label><input type="time" required value={isEditing.time} onChange={e=>setIsEditing({...isEditing, time:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                </div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Lokasi</label><input required value={isEditing.location} onChange={e=>setIsEditing({...isEditing, location:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Keterangan</label><textarea required value={isEditing.description} onChange={e=>setIsEditing({...isEditing, description:e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold h-24 resize-none"></textarea></div>
-                <button type="submit" className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black mt-4 shadow-lg active:scale-95 transition">Simpan Agenda</button>
-              </form>
-            </Modal>
-          )}
-        </div>
-      );
-    }
-
-    function ViewMateri() {
-      // Fitur UI saja, implementasi file upload sungguhan ke Cloud Storage butuh setup Firebase Storage terpisah.
-      const { materials } = useContext(AppContext);
-      return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
-          <div><h2 className="text-3xl font-black text-slate-800 tracking-tight">Gudang Materi & Arsip</h2><p className="text-slate-500 font-medium mt-1">Kumpulan notulensi dan file tersimpan.</p></div>
-          {materials.length === 0 ? (
-             <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-slate-400">
-               <i className="fa-solid fa-folder-open text-6xl mb-4 opacity-30"></i><p className="font-bold">Belum ada file materi yang diunggah.</p>
-             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {materials.map(m => (
-                <div key={m.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-lg transition group">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-inner shrink-0 ${m.type==='PDF'?'bg-rose-500':'bg-blue-500'}`}><i className="fa-solid fa-file-lines text-2xl"></i></div>
-                    <div><h3 className="font-black text-slate-800 leading-tight line-clamp-2">{m.title}</h3><p className="text-xs font-bold text-slate-400 mt-1">{m.date} • {m.size}</p></div>
-                  </div>
-                  <button className="w-full text-indigo-700 bg-indigo-50 hover:bg-indigo-600 hover:text-white py-3 rounded-xl font-black transition"><i className="fa-solid fa-download mr-2"></i> Unduh File</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // --- STREAMING_CHUNK:Helper UI Component... ---
-    function Modal({ title, children, onClose }) {
-      return (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
-              <h3 className="font-black text-xl text-slate-800">{title}</h3>
-              <button onClick={onClose} className="text-slate-400 bg-slate-100 hover:bg-slate-200 p-2 rounded-full w-10 h-10 flex items-center justify-center transition active:scale-90"><i className="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div className="p-8">{children}</div>
           </div>
         </div>
       );
@@ -813,3 +367,4 @@
   </script>
 </body>
 </html>
+```
