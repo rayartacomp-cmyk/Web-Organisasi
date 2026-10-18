@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,63 +6,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistem Informasi Organisasi</title>
   
-  <!-- Kumpulan Library -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-slate-50 text-slate-800">
   
-  <!-- Layar Pendeteksi Error (Akan muncul jika ada salah ketik) -->
-  <div id="error-screen" style="display: none; padding: 20px; background: #fee2e2; color: #991b1b; border-bottom: 4px solid #ef4444; font-family: monospace;">
-    <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">⚠️ Terjadi Kesalahan Kode (Syntax Error)</h2>
-    <p>Sepertinya ada tanda baca (koma/kutip) yang hilang saat copy-paste kode Firebase.</p>
-    <div id="error-message" style="margin-top: 10px; background: #fff; padding: 10px; border-radius: 5px;"></div>
+  <style>
+    /* Animasi Scanner */
+    .scan-line {
+      width: 100%; height: 4px; background: #10b981;
+      position: absolute; top: 0; left: 0;
+      box-shadow: 0 0 10px #10b981;
+      animation: scan 2s infinite linear;
+    }
+    @keyframes scan {
+      0% { top: 0; }
+      50% { top: 100%; }
+      100% { top: 0; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+  
+  <div id="error-screen" style="display: none; padding: 20px; background: #fee2e2; color: #991b1b; font-family: monospace; white-space: pre-wrap;">
+    <h2 style="font-size: 18px; font-weight: bold;">⚠️ Terjadi Kesalahan Syntax</h2>
+    <div id="error-message" style="margin-top: 10px;"></div>
   </div>
 
   <div id="root"></div>
 
-  <!-- Script Pendeteksi Error -->
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       document.getElementById('error-screen').style.display = 'block';
-      document.getElementById('error-message').innerText = "Detail: " + message + " (Baris: " + lineno + ")";
+      document.getElementById('error-message').innerText = message + "\n\n(Baris: " + lineno + ")";
     };
   </script>
 
   <script type="text/babel">
     const { useState, useEffect, createContext, useContext } = React;
 
-    // Data Bawaan (Akan ditimpa oleh data Cloud jika ada)
+    // --- DATA BAWAAN ---
     const INITIAL_USERS = [
       { id: 1, nim: '1011001', name: 'Budi (Admin)', role: 'admin', division: 'Inti', position: 'Ketua', password: 'admin', photo: 'https://placehold.co/150x150/4f46e5/ffffff?text=BD' },
       { id: 2, nim: '1011002', name: 'Siti (Anggota)', role: 'user', division: 'Humas', position: 'Staff', password: 'user', photo: 'https://placehold.co/150x150/ec4899/ffffff?text=ST' },
     ];
     const INITIAL_FINANCE = { balance: 1500000, weeklyDues: 10000, transactions: [{ id: 1, type: 'income', amount: 50000, date: '2026-10-15', desc: 'Uang Kas Awal' }], duesStatus: { 2: [true, false, false, false] } };
-    const INITIAL_SCHEDULES = [{ id: 1, title: 'Rapat Kerja Bulanan', date: '2026-10-20', time: '15:00', location: 'Ruang Sidang 1', description: 'Membahas proker.' }];
+    const INITIAL_SCHEDULES = [{ id: 1, title: 'Rapat Kerja', date: '2026-10-20', time: '15:00', location: 'Ruang Sidang 1', description: 'Membahas proker bulan depan.' }];
+    const INITIAL_MATERIALS = [{ id: 1, title: 'Notulensi Rapat 10 Okt', date: '2026-10-10', type: 'PDF' }];
     
     const AppContext = createContext();
 
     function App() {
       const [currentUser, setCurrentUser] = useState(null);
       const [firebaseReady, setFirebaseReady] = useState(false);
-      const [firebaseError, setFirebaseError] = useState(false);
+      const [dbInfo, setDbInfo] = useState(null);
       
       const [users, setUsers] = useState(INITIAL_USERS);
       const [schedules, setSchedules] = useState(INITIAL_SCHEDULES);
+      const [materials, setMaterials] = useState(INITIAL_MATERIALS);
       const [finance, setFinance] = useState(INITIAL_FINANCE);
       const [activeQR, setActiveQR] = useState(false);
       const [attendanceRecord, setAttendanceRecord] = useState({});
-
-      const [dbInfo, setDbInfo] = useState(null);
 
       useEffect(() => {
         const initDB = async () => {
           try {
             // ========================================================
-            // KODE FIREBASE SUDAH DIMASUKKAN DENGAN SEMPURNA DI SINI
+            // KUNCI FIREBASE ANDA
             // ========================================================
             const myFirebaseConfig = {
               apiKey: "AIzaSyCe4dOrr6ChY6C94ud7eReqLPpG6K1jlck",
@@ -82,20 +94,16 @@
             const auth = authModule.getAuth(app);
             const db = firestoreModule.getFirestore(app);
             
-            // Login rahasia di latar belakang agar diizinkan menyimpan data
             await authModule.signInAnonymously(auth);
-
-            setDbInfo({ db, auth, firestoreModule, appId: myFirebaseConfig.projectId });
+            setDbInfo({ db, firestoreModule });
             setFirebaseReady(true);
           } catch (err) {
-            console.error("Firebase Gagal:", err);
-            setFirebaseError(true);
+            console.error("Firebase Error:", err);
           }
         };
         initDB();
       }, []);
 
-      // Sinkronisasi Firebase (Real-time)
       useEffect(() => {
         if (!firebaseReady || !dbInfo) return;
         const { db, firestoreModule } = dbInfo;
@@ -107,11 +115,11 @@
             if (data.users) setUsers(data.users);
             if (data.finance) setFinance(data.finance);
             if (data.schedules) setSchedules(data.schedules);
+            if (data.materials) setMaterials(data.materials);
             if (data.attendanceRecord) setAttendanceRecord(data.attendanceRecord);
             if (data.activeQR !== undefined) setActiveQR(data.activeQR);
           } else {
-            // Jika database masih kosong, isi dengan data bawaan
-            firestoreModule.setDoc(docRef, { users: INITIAL_USERS, finance: INITIAL_FINANCE, schedules: INITIAL_SCHEDULES, attendanceRecord: {}, activeQR: false });
+            firestoreModule.setDoc(docRef, { users: INITIAL_USERS, finance: INITIAL_FINANCE, schedules: INITIAL_SCHEDULES, materials: INITIAL_MATERIALS, attendanceRecord: {}, activeQR: false });
           }
         });
         return () => unsubscribe();
@@ -120,12 +128,9 @@
       const updateGlobal = async (key, value) => {
         if (!dbInfo) return;
         const { db, firestoreModule } = dbInfo;
-        const docRef = firestoreModule.doc(db, 'organisasi', 'data_utama');
         try { 
-          await firestoreModule.setDoc(docRef, { [key]: value }, { merge: true }); 
-        } catch (e) { 
-          console.error("Gagal simpan:", e); 
-        }
+          await firestoreModule.setDoc(firestoreModule.doc(db, 'organisasi', 'data_utama'), { [key]: value }, { merge: true }); 
+        } catch (e) { console.error(e); }
       };
 
       const handleLogin = (nim, password) => {
@@ -139,16 +144,33 @@
           currentUser, handleLogout: () => setCurrentUser(null),
           users, setUsers: (v) => { setUsers(v); updateGlobal('users', v); },
           schedules, setSchedules: (v) => { setSchedules(v); updateGlobal('schedules', v); },
+          materials, setMaterials: (v) => { setMaterials(v); updateGlobal('materials', v); },
           finance, setFinance: (v) => { setFinance(v); updateGlobal('finance', v); },
           activeQR, setActiveQR: (v) => { setActiveQR(v); updateGlobal('activeQR', v); },
           attendanceRecord, setAttendanceRecord: (v) => { setAttendanceRecord(v); updateGlobal('attendanceRecord', v); }
         }}>
-          {currentUser ? <MainLayout /> : <LoginScreen onLogin={handleLogin} fError={firebaseError} fReady={firebaseReady} />}
+          {currentUser ? <MainLayout /> : <LoginScreen onLogin={handleLogin} fReady={firebaseReady} />}
         </AppContext.Provider>
       );
     }
 
-    function LoginScreen({ onLogin, fError, fReady }) {
+    // --- KOMPONEN HELPER MODAL ---
+    function Modal({ title, children, onClose }) {
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-5 border-b">
+              <h3 className="font-bold text-lg">{title}</h3>
+              <button onClick={onClose} className="text-slate-400 hover:text-red-500"><i className="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div className="p-5 max-h-[80vh] overflow-y-auto">{children}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- LOGIN SCREEN ---
+    function LoginScreen({ onLogin, fReady }) {
       const [nim, setNim] = useState('');
       const [pass, setPass] = useState('');
       const [err, setErr] = useState('');
@@ -167,21 +189,17 @@
               <p className="text-slate-500 text-sm mt-1">Sistem Informasi Terpadu</p>
             </div>
             
-            {fReady && (
-              <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl mb-4 text-sm font-bold border border-emerald-200 text-center">
-                <i className="fa-solid fa-cloud-check mr-2"></i> Tersambung ke Cloud (Online)
-              </div>
+            {fReady ? (
+              <div className="bg-emerald-50 text-emerald-700 p-3 rounded-xl mb-4 text-xs font-bold text-center border border-emerald-200"><i className="fa-solid fa-cloud-check mr-1"></i> Database Online Terhubung</div>
+            ) : (
+              <div className="bg-yellow-50 text-yellow-700 p-3 rounded-xl mb-4 text-xs font-bold text-center border border-yellow-200"><i className="fa-solid fa-spinner fa-spin mr-1"></i> Menghubungkan ke Cloud...</div>
             )}
-            {fError && (
-              <div className="bg-yellow-50 text-yellow-700 p-4 rounded-xl mb-4 text-sm font-bold border border-yellow-200">
-                <i className="fa-solid fa-triangle-exclamation mr-2"></i> Mode Offline Aktif (Cloud Gagal).
-              </div>
-            )}
+            
             {err && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm font-bold text-center">{err}</div>}
 
             <form onSubmit={submit} className="space-y-4">
-              <div><label className="block text-sm font-bold text-slate-700 mb-1">NIM / ID</label><input type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none" value={nim} onChange={e=>setNim(e.target.value)} required placeholder="Contoh: 1011001" /></div>
-              <div><label className="block text-sm font-bold text-slate-700 mb-1">Password</label><input type="password" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" /></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-1">NIM / ID</label><input type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={nim} onChange={e=>setNim(e.target.value)} required placeholder="Contoh: 1011001" /></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-1">Password</label><input type="password" className="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" value={pass} onChange={e=>setPass(e.target.value)} required placeholder="••••••••" /></div>
               <button type="submit" className="w-full bg-indigo-600 text-white font-black py-3.5 rounded-xl hover:bg-indigo-700 transition shadow-lg mt-2">Masuk</button>
             </form>
           </div>
@@ -189,6 +207,7 @@
       );
     }
 
+    // --- MAIN LAYOUT ---
     function MainLayout() {
       const { currentUser, handleLogout } = useContext(AppContext);
       const [tab, setTab] = useState('dashboard');
@@ -198,18 +217,27 @@
         { id: 'absensi', label: 'Absensi', icon: 'fa-qrcode' },
         { id: 'kas', label: 'Keuangan', icon: 'fa-wallet' },
         { id: 'anggota', label: 'Anggota', icon: 'fa-users' },
+        { id: 'jadwal', label: 'Jadwal', icon: 'fa-calendar' },
+        { id: 'materi', label: 'Materi', icon: 'fa-file-lines' },
       ];
 
       return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-          <div className="md:hidden bg-indigo-700 text-white p-4 flex justify-between items-center shadow-lg">
+          <div className="md:hidden bg-indigo-700 text-white p-4 flex justify-between items-center shadow-lg z-20 relative">
             <span className="font-black text-xl"><i className="fa-solid fa-cloud mr-2"></i>OrgCloud</span>
             <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded-lg font-bold text-sm"><i className="fa-solid fa-power-off"></i></button>
           </div>
 
-          <div className="hidden md:flex flex-col w-64 bg-white shadow-xl h-screen sticky top-0">
+          <div className="hidden md:flex flex-col w-64 bg-white shadow-xl h-screen sticky top-0 z-10">
             <div className="p-6 text-indigo-700 font-black text-2xl border-b"><i className="fa-solid fa-cloud mr-2"></i>OrgCloud</div>
-            <nav className="flex-1 p-4 space-y-2">
+            <div className="p-4 flex items-center space-x-3 border-b">
+               <img src={currentUser.photo} className="w-10 h-10 rounded-full border-2 border-indigo-100" />
+               <div className="overflow-hidden">
+                 <p className="text-sm font-bold text-slate-800 truncate">{currentUser.name}</p>
+                 <p className="text-xs text-slate-500 uppercase">{currentUser.role}</p>
+               </div>
+            </div>
+            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
               {navs.map(n => (
                 <button key={n.id} onClick={()=>setTab(n.id)} className={`w-full flex items-center p-3 rounded-xl transition ${tab===n.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 font-bold'}`}>
                   <i className={`fa-solid ${n.icon} w-6 text-center mr-2`}></i> {n.label}
@@ -221,16 +249,18 @@
             </div>
           </div>
 
-          <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-screen">
             {tab === 'dashboard' && <ViewDashboard setTab={setTab}/>}
             {tab === 'absensi' && <ViewAbsensi />}
             {tab === 'kas' && <ViewKas />}
             {tab === 'anggota' && <ViewAnggota />}
+            {tab === 'jadwal' && <ViewJadwal />}
+            {tab === 'materi' && <ViewMateri />}
           </div>
           
-          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t flex justify-around p-3 z-50">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t flex justify-around p-2 z-50 overflow-x-auto">
              {navs.map(n => (
-                <button key={n.id} onClick={()=>setTab(n.id)} className={`flex flex-col items-center p-2 rounded-xl ${tab===n.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                <button key={n.id} onClick={()=>setTab(n.id)} className={`flex flex-col items-center p-2 min-w-[60px] rounded-xl ${tab===n.id ? 'text-indigo-600' : 'text-slate-400'}`}>
                   <i className={`fa-solid ${n.icon} text-xl mb-1`}></i>
                   <span className="text-[10px] font-bold">{n.label}</span>
                 </button>
@@ -240,20 +270,22 @@
       );
     }
 
+    // --- VIEWS ---
+
     function ViewDashboard({setTab}) {
       const { users, finance, currentUser } = useContext(AppContext);
       return (
-        <div className="space-y-6 pb-20 md:pb-0">
+        <div className="space-y-6">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
-            <h2 className="text-2xl md:text-3xl font-black mb-1">Halo, {currentUser.name}! 👋</h2>
+            <h2 className="text-2xl md:text-3xl font-black mb-1">Halo, {currentUser.name.split(' ')[0]}! 👋</h2>
             <p className="text-indigo-100 font-medium text-sm md:text-base">Selamat datang di dashboard organisasi.</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div onClick={()=>setTab('anggota')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer">
+          <div className="grid grid-cols-2 gap-4">
+            <div onClick={()=>setTab('anggota')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-users text-xl"></i></div>
               <h3 className="text-2xl font-black text-slate-800">{users.length}</h3><p className="text-xs font-bold text-slate-400">Total Anggota</p>
             </div>
-            <div onClick={()=>setTab('kas')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer">
+            <div onClick={()=>setTab('kas')} className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition">
               <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2"><i className="fa-solid fa-wallet text-xl"></i></div>
               <h3 className="text-xl font-black text-slate-800">Rp {finance.balance.toLocaleString('id')}</h3><p className="text-xs font-bold text-slate-400">Saldo Kas</p>
             </div>
@@ -264,99 +296,371 @@
 
     function ViewAbsensi() {
       const { currentUser, users, activeQR, setActiveQR, attendanceRecord, setAttendanceRecord } = useContext(AppContext);
-      
-      const handleScan = () => {
-        if(activeQR) {
-           setAttendanceRecord({...attendanceRecord, [currentUser.id]: true});
-           alert("✅ Berhasil Absen!");
-        } else alert("❌ Sesi belum dibuka Admin!");
+      const [isScanning, setIsScanning] = useState(false);
+      const [scanResult, setScanResult] = useState(null);
+
+      const toggleAttendance = (userId) => {
+        if (currentUser.role !== 'admin') return;
+        setAttendanceRecord({...attendanceRecord, [userId]: !attendanceRecord[userId]});
       };
 
+      const handleCameraScan = () => {
+        if(!activeQR) { alert("Admin belum membuka sesi absensi!"); return; }
+        setIsScanning(true);
+        // Simulasi proses scanning 2.5 detik
+        setTimeout(() => {
+          setAttendanceRecord({...attendanceRecord, [currentUser.id]: true});
+          setIsScanning(false);
+          setScanResult("Berhasil Absen!");
+          setTimeout(() => setScanResult(null), 3000);
+        }, 2500);
+      };
+
+      if (isScanning) {
+        return (
+          <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
+             <h3 className="text-white font-bold mb-4">Arahkan Kamera ke QR Code...</h3>
+             <div className="relative w-64 h-64 border-2 border-dashed border-white rounded-3xl overflow-hidden bg-slate-800/50 flex items-center justify-center">
+               <div className="scan-line"></div>
+               <i className="fa-solid fa-camera text-4xl text-white/50"></i>
+             </div>
+             <button onClick={()=>setIsScanning(false)} className="mt-8 bg-white/20 text-white px-6 py-2 rounded-full font-bold hover:bg-white/30">Batal</button>
+          </div>
+        );
+      }
+
       return (
-        <div className="space-y-6 pb-20 md:pb-0">
-          <div className="flex justify-between items-center"><h2 className="text-2xl font-black">Absensi</h2>
-          {currentUser.role === 'admin' && <button onClick={()=>setActiveQR(!activeQR)} className={`px-4 py-2 text-white font-bold rounded-xl ${activeQR?'bg-red-500':'bg-indigo-600'}`}>{activeQR?'Tutup QR':'Buka QR'}</button>}</div>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Absensi</h2>
+            {currentUser.role === 'admin' && <button onClick={()=>setActiveQR(!activeQR)} className={`px-4 py-2 text-white font-bold rounded-xl text-sm ${activeQR?'bg-red-500':'bg-indigo-600'}`}>{activeQR?'Tutup QR':'Buka QR'}</button>}
+          </div>
           
-          <div className="bg-white p-6 rounded-3xl border text-center">
-            {activeQR ? <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=Hadir" className="mx-auto mb-4 border-4 border-indigo-100 rounded-xl"/> : <div className="w-40 h-40 bg-slate-100 border-2 border-dashed rounded-xl mx-auto mb-4 flex items-center justify-center text-slate-400"><i className="fa-solid fa-qrcode text-4xl"></i></div>}
-            {currentUser.role === 'user' && <button onClick={handleScan} className="w-full bg-slate-800 text-white font-black py-3 rounded-xl"><i className="fa-solid fa-camera mr-2"></i> Scan QR Absen</button>}
+          <div className="bg-white p-6 rounded-3xl border shadow-sm text-center">
+            {activeQR ? 
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SesiAbsensiAktif" className="mx-auto mb-4 border-4 border-indigo-100 rounded-xl" alt="QR Absensi"/> : 
+              <div className="w-40 h-40 bg-slate-100 border-2 border-dashed rounded-xl mx-auto mb-4 flex flex-col items-center justify-center text-slate-400">
+                <i className="fa-solid fa-qrcode text-4xl mb-2"></i>
+                <span className="text-xs font-bold">QR Tidak Aktif</span>
+              </div>
+            }
+            
+            {currentUser.role === 'user' && (
+              <div>
+                <button onClick={handleCameraScan} className="w-full max-w-xs mx-auto bg-slate-800 text-white font-black py-3 rounded-xl flex items-center justify-center hover:bg-slate-900 transition"><i className="fa-solid fa-camera mr-2"></i> Buka Kamera Scan</button>
+                {scanResult && <p className="mt-3 font-bold text-emerald-600"><i className="fa-solid fa-circle-check"></i> {scanResult}</p>}
+              </div>
+            )}
+            {currentUser.role === 'admin' && <p className="text-sm font-bold text-slate-500 mt-2">Minta anggota scan QR di atas atau centang manual di bawah.</p>}
           </div>
 
-          <div className="bg-white rounded-3xl border overflow-hidden">
-            <div className="p-4 bg-slate-50 font-black border-b">Daftar Kehadiran</div>
-            {users.map(u => (
-              <div key={u.id} className="flex justify-between items-center p-4 border-b last:border-0">
-                <div className="font-bold">{u.name}</div>
-                <div>{attendanceRecord[u.id] ? <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">Hadir</span> : <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs font-black">Belum</span>}</div>
-              </div>
-            ))}
+          <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+            <div className="p-4 bg-slate-50 font-black border-b text-slate-700">Daftar Kehadiran Hari Ini</div>
+            <div className="divide-y">
+              {users.map(u => (
+                <div key={u.id} className="flex justify-between items-center p-4 hover:bg-slate-50 transition">
+                  <div className="flex items-center space-x-3">
+                    <img src={u.photo} className="w-8 h-8 rounded-full object-cover" alt="Profile" />
+                    <div><p className="font-bold text-sm leading-tight">{u.name}</p><p className="text-[10px] text-slate-500">{u.nim}</p></div>
+                  </div>
+                  <div>
+                    {currentUser.role === 'admin' ? (
+                      <button onClick={()=>toggleAttendance(u.id)} className={`px-3 py-1 rounded-full text-xs font-black transition ${attendanceRecord[u.id] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                        {attendanceRecord[u.id] ? <><i className="fa-solid fa-check"></i> Hadir</> : 'Tandai Hadir'}
+                      </button>
+                    ) : (
+                      <span className={`px-3 py-1 rounded-full text-xs font-black ${attendanceRecord[u.id] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {attendanceRecord[u.id] ? <><i className="fa-solid fa-check"></i> Hadir</> : 'Belum'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       );
     }
 
     function ViewKas() {
-      const { finance } = useContext(AppContext);
+      const { currentUser, finance, setFinance, users } = useContext(AppContext);
+      const [showQRIS, setShowQRIS] = useState(false);
+      const [formType, setFormType] = useState(null);
+      const [amount, setAmount] = useState('');
+      const [desc, setDesc] = useState('');
+
+      const handleAddTx = (e) => {
+        e.preventDefault();
+        const val = parseInt(amount);
+        if(!val) return;
+        const newTx = { id: Date.now(), type: formType, amount: val, date: new Date().toISOString().split('T')[0], desc };
+        setFinance({
+          ...finance,
+          balance: formType === 'income' ? finance.balance + val : finance.balance - val,
+          transactions: [newTx, ...finance.transactions]
+        });
+        setFormType(null); setAmount(''); setDesc('');
+      };
+
+      const toggleDues = (userId, weekIndex) => {
+        if(currentUser.role !== 'admin') return;
+        const currentDues = finance.duesStatus[userId] || [false,false,false,false];
+        const newDues = [...currentDues];
+        newDues[weekIndex] = !newDues[weekIndex];
+        setFinance({...finance, duesStatus: {...finance.duesStatus, [userId]: newDues}});
+      };
+
       return (
-        <div className="space-y-6 pb-20 md:pb-0">
-          <h2 className="text-2xl font-black">Kas Organisasi</h2>
-          <div className="bg-indigo-600 p-6 rounded-3xl text-white text-center shadow-lg">
-            <p className="text-indigo-200 font-bold text-sm">Total Saldo Kas</p>
-            <h3 className="text-4xl font-black mt-1">Rp {finance.balance.toLocaleString('id')}</h3>
+        <div className="space-y-6">
+          <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg flex flex-col md:flex-row justify-between items-center">
+            <div>
+              <p className="text-indigo-200 font-bold text-sm">Total Saldo Kas</p>
+              <h3 className="text-4xl font-black mt-1">Rp {finance.balance.toLocaleString('id')}</h3>
+            </div>
+            {currentUser.role === 'user' && (
+              <button onClick={()=>setShowQRIS(true)} className="mt-4 md:mt-0 bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold shadow-md w-full md:w-auto hover:bg-indigo-50 transition"><i className="fa-solid fa-qrcode mr-2"></i> Bayar QRIS</button>
+            )}
           </div>
-          <div className="text-center p-6 bg-white border rounded-3xl">
-             <p className="font-bold text-slate-500 mb-4">Bayar Kas via QRIS</p>
-             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=BayarKas" className="mx-auto border-4 border-slate-100 rounded-xl" />
+
+          {currentUser.role === 'admin' && (
+            <div className="grid grid-cols-2 gap-4">
+               <button onClick={()=>setFormType('income')} className="bg-white p-4 border rounded-2xl font-bold text-emerald-600 shadow-sm hover:border-emerald-500 transition"><i className="fa-solid fa-arrow-down mr-2"></i>+ Pemasukan</button>
+               <button onClick={()=>setFormType('expense')} className="bg-white p-4 border rounded-2xl font-bold text-red-600 shadow-sm hover:border-red-500 transition"><i className="fa-solid fa-arrow-up mr-2"></i>- Pengeluaran</button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+            <div className="p-4 bg-slate-50 font-black border-b text-slate-700">Status Bayar Kas (Bulan Ini)</div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead>
+                  <tr className="border-b text-slate-500"><th className="p-3">Anggota</th><th className="p-3 text-center">W1</th><th className="p-3 text-center">W2</th><th className="p-3 text-center">W3</th><th className="p-3 text-center">W4</th></tr>
+                </thead>
+                <tbody className="divide-y">
+                  {users.filter(u=>u.role!=='admin').map(u => {
+                    const status = finance.duesStatus[u.id] || [false,false,false,false];
+                    return (
+                      <tr key={u.id} className={currentUser.id === u.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}>
+                        <td className="p-3 font-bold text-slate-700">{u.name}</td>
+                        {[0,1,2,3].map(w => (
+                          <td key={w} className="p-3 text-center">
+                            {currentUser.role === 'admin' ? 
+                              <input type="checkbox" checked={status[w]} onChange={()=>toggleDues(u.id, w)} className="w-4 h-4 text-indigo-600 rounded cursor-pointer accent-indigo-600" /> : 
+                              (status[w] ? <i className="fa-solid fa-check text-emerald-500"></i> : <i className="fa-solid fa-xmark text-slate-300"></i>)
+                            }
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+             <div className="p-4 bg-slate-50 font-black border-b text-slate-700">Riwayat Transaksi</div>
+             <div className="p-2 h-64 overflow-y-auto">
+               {finance.transactions.map(tx => (
+                 <div key={tx.id} className="flex justify-between items-center p-3 border-b border-slate-50 last:border-0">
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{tx.desc}</p>
+                      <p className="text-xs text-slate-400">{tx.date}</p>
+                    </div>
+                    <span className={`font-black text-sm ${tx.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {tx.type === 'income' ? '+' : '-'} Rp {tx.amount.toLocaleString('id')}
+                    </span>
+                 </div>
+               ))}
+             </div>
+          </div>
+
+          {showQRIS && (
+            <Modal title="Pembayaran QRIS" onClose={()=>setShowQRIS(false)}>
+              <div className="text-center">
+                <p className="text-sm font-bold text-slate-500 mb-4">Scan menggunakan M-Banking/E-Wallet</p>
+                {/* INI ADALAH BAGIAN YANG SUDAH DIPERBAIKI (KOMENTAR JSX) */}
+                <img src="./52315.png" alt="QRIS Organisasi" className="mx-auto border-4 border-slate-100 rounded-xl mb-4 w-full max-w-[250px] shadow-md" onError={(e) => { e.target.onerror = null; e.target.src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=FILE_QRIS_BELUM_DIUPLOAD"; }} />
+                <p className="font-black text-lg text-slate-800">RAYHAN JUNIARTA FIRMANSYAH</p>
+                <p className="text-xs font-bold text-slate-400">NMID: ID1026491868786</p>
+                <p className="text-xs text-red-500 mt-4 bg-red-50 p-2 rounded-lg">*Jika gambar rusak, pastikan Anda sudah upload foto QRIS dengan nama <b>52315.png</b> ke GitHub.</p>
+              </div>
+            </Modal>
+          )}
+
+          {formType && (
+            <Modal title={formType === 'income' ? 'Tambah Pemasukan' : 'Tambah Pengeluaran'} onClose={()=>setFormType(null)}>
+              <form onSubmit={handleAddTx} className="space-y-4">
+                <div><label className="text-sm font-bold text-slate-700">Nominal (Rp)</label><input type="number" required value={amount} onChange={e=>setAmount(e.target.value)} className="w-full border p-3 rounded-xl mt-1 outline-none focus:ring-2 focus:ring-indigo-500"/></div>
+                <div><label className="text-sm font-bold text-slate-700">Keterangan</label><input type="text" required value={desc} onChange={e=>setDesc(e.target.value)} className="w-full border p-3 rounded-xl mt-1 outline-none focus:ring-2 focus:ring-indigo-500"/></div>
+                <button type="submit" className={`w-full text-white font-black py-3 rounded-xl transition ${formType==='income'?'bg-emerald-600 hover:bg-emerald-700':'bg-red-600 hover:bg-red-700'}`}>Simpan Transaksi</button>
+              </form>
+            </Modal>
+          )}
         </div>
       );
     }
 
     function ViewAnggota() {
-      const { users, currentUser, setUsers } = useContext(AppContext);
-      const [newMember, setNewMember] = useState(null);
+      const { users, setUsers, currentUser } = useContext(AppContext);
+      const [isEditing, setIsEditing] = useState(null);
 
-      const handleAdd = (e) => {
+      const handleSave = (e) => {
         e.preventDefault();
-        const id = Date.now();
-        setUsers([...users, { ...newMember, id, photo: `https://placehold.co/150x150/94a3b8/ffffff?text=${newMember.name.substring(0,2).toUpperCase()}` }]);
-        setNewMember(null);
+        if(isEditing.id) {
+          setUsers(users.map(u => u.id === isEditing.id ? isEditing : u));
+        } else {
+          setUsers([...users, { ...isEditing, id: Date.now(), photo: isEditing.photo || `https://placehold.co/150x150/94a3b8/ffffff?text=${isEditing.name.substring(0,2).toUpperCase()}` }]);
+        }
+        setIsEditing(null);
       };
 
+      const handleAdd = () => setIsEditing({ nim: '', name: '', role: 'user', division: '', position: 'Staff', password: '', photo: '' });
+
       return (
-        <div className="space-y-6 pb-20 md:pb-0">
+        <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-black">Anggota</h2>
-            {currentUser.role === 'admin' && <button onClick={()=>setNewMember({ nim: '', name: '', role: 'user', division: '', position: 'Staff', password: 'user' })} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><i className="fa-solid fa-plus mr-1"></i> Tambah</button>}
+            <h2 className="text-2xl font-black">Anggota Aktif</h2>
+            {currentUser.role === 'admin' && <button onClick={handleAdd} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition"><i className="fa-solid fa-plus mr-1"></i> Tambah</button>}
           </div>
 
-          {newMember && (
-            <div className="bg-white p-4 rounded-2xl border mb-4">
-              <h3 className="font-bold mb-3 text-sm">Tambah Anggota Baru</h3>
-              <form onSubmit={handleAdd} className="space-y-3">
-                <input required placeholder="NIM / ID" className="w-full border p-2 rounded-lg text-sm" value={newMember.nim} onChange={e=>setNewMember({...newMember, nim: e.target.value})} />
-                <input required placeholder="Nama Lengkap" className="w-full border p-2 rounded-lg text-sm" value={newMember.name} onChange={e=>setNewMember({...newMember, name: e.target.value})} />
-                <input required placeholder="Divisi" className="w-full border p-2 rounded-lg text-sm" value={newMember.division} onChange={e=>setNewMember({...newMember, division: e.target.value})} />
-                <div className="flex gap-2">
-                   <button type="button" onClick={()=>setNewMember(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg text-sm">Batal</button>
-                   <button type="submit" className="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm">Simpan</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {users.map(u => (
-              <div key={u.id} className="bg-white p-4 rounded-2xl border flex items-center space-x-4">
-                <img src={u.photo} className="w-16 h-16 rounded-full object-cover" />
+              <div key={u.id} className="bg-white p-4 rounded-3xl border shadow-sm flex items-center space-x-4 relative overflow-hidden hover:shadow-md transition">
+                <img src={u.photo} className="w-16 h-16 rounded-full object-cover border-2 border-slate-100" alt="Profile" />
                 <div>
                   <h3 className="font-black text-slate-800">{u.name}</h3>
-                  <p className="text-xs font-bold text-slate-400">{u.nim}</p>
-                  <p className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg inline-block mt-1 font-bold">{u.division}</p>
+                  <p className="text-xs font-bold text-slate-400 mb-1">{u.nim}</p>
+                  <p className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg inline-block font-bold text-slate-600">{u.division} • {u.position}</p>
                 </div>
+                {currentUser.role === 'admin' && (
+                   <button onClick={()=>setIsEditing(u)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-100 transition"><i className="fa-solid fa-pen"></i></button>
+                )}
               </div>
             ))}
           </div>
+
+          {isEditing && currentUser.role === 'admin' && (
+            <Modal title={isEditing.id ? 'Edit Data Anggota' : 'Anggota Baru'} onClose={()=>setIsEditing(null)}>
+              <form onSubmit={handleSave} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs font-bold text-slate-500">NIM/ID</label><input required value={isEditing.nim} onChange={e=>setIsEditing({...isEditing, nim:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                  <div><label className="text-xs font-bold text-slate-500">Nama Lengkap</label><input required value={isEditing.name} onChange={e=>setIsEditing({...isEditing, name:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                  <div><label className="text-xs font-bold text-slate-500">Divisi</label><input required value={isEditing.division} onChange={e=>setIsEditing({...isEditing, division:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                  <div><label className="text-xs font-bold text-slate-500">Jabatan</label><input required value={isEditing.position} onChange={e=>setIsEditing({...isEditing, position:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                  <div><label className="text-xs font-bold text-slate-500">Hak Akses (Role)</label><select value={isEditing.role} onChange={e=>setIsEditing({...isEditing, role:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"><option value="user">Anggota</option><option value="admin">Admin</option></select></div>
+                  <div><label className="text-xs font-bold text-slate-500">Password Akun</label><input required value={isEditing.password} onChange={e=>setIsEditing({...isEditing, password:e.target.value})} className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                </div>
+                <div><label className="text-xs font-bold text-slate-500">URL Foto (Link Gambar)</label><input value={isEditing.photo} onChange={e=>setIsEditing({...isEditing, photo:e.target.value})} placeholder="https://..." className="w-full border p-2 rounded-lg mt-1 text-sm outline-none focus:border-indigo-500"/></div>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-3 rounded-xl mt-4 hover:bg-indigo-700 transition">Simpan Data</button>
+              </form>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    function ViewJadwal() {
+      const { schedules, setSchedules, currentUser } = useContext(AppContext);
+      const [isEditing, setIsEditing] = useState(null);
+
+      const handleSave = (e) => {
+        e.preventDefault();
+        if(isEditing.id) setSchedules(schedules.map(s => s.id === isEditing.id ? isEditing : s));
+        else setSchedules([...schedules, { ...isEditing, id: Date.now() }]);
+        setIsEditing(null);
+      };
+
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Jadwal Kegiatan</h2>
+            {currentUser.role === 'admin' && <button onClick={()=>setIsEditing({title:'', date:'', time:'', location:'', description:''})} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition"><i className="fa-solid fa-plus mr-1"></i> Tambah</button>}
+          </div>
+
+          <div className="space-y-4">
+            {schedules.map(s => (
+              <div key={s.id} className="bg-white p-5 rounded-3xl border shadow-sm flex flex-col md:flex-row gap-4 justify-between md:items-center relative hover:shadow-md transition">
+                <div className="flex items-start space-x-4">
+                   <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl text-center min-w-[70px]">
+                     <p className="text-xs font-black uppercase">{new Date(s.date).toLocaleString('id-ID', {month:'short'})}</p>
+                     <p className="text-2xl font-black">{new Date(s.date).getDate()}</p>
+                   </div>
+                   <div>
+                     <h3 className="font-black text-slate-800 text-lg">{s.title}</h3>
+                     <p className="text-sm font-bold text-slate-500 mt-1"><i className="fa-solid fa-clock mr-1"></i> {s.time} &nbsp;&nbsp; <i className="fa-solid fa-location-dot mr-1"></i> {s.location}</p>
+                     <p className="text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">{s.description}</p>
+                   </div>
+                </div>
+                {currentUser.role === 'admin' && <button onClick={()=>setIsEditing(s)} className="absolute top-4 right-4 text-slate-400 hover:text-indigo-600 p-2"><i className="fa-solid fa-pen"></i></button>}
+              </div>
+            ))}
+          </div>
+
+          {isEditing && currentUser.role === 'admin' && (
+            <Modal title={isEditing.id ? 'Edit Jadwal' : 'Tambah Jadwal'} onClose={()=>setIsEditing(null)}>
+              <form onSubmit={handleSave} className="space-y-3">
+                <div><label className="text-sm font-bold text-slate-700">Nama Kegiatan</label><input required value={isEditing.title} onChange={e=>setIsEditing({...isEditing, title:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none focus:border-indigo-500 font-bold"/></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-sm font-bold text-slate-700">Tanggal</label><input type="date" required value={isEditing.date} onChange={e=>setIsEditing({...isEditing, date:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none text-sm"/></div>
+                  <div><label className="text-sm font-bold text-slate-700">Waktu</label><input type="time" required value={isEditing.time} onChange={e=>setIsEditing({...isEditing, time:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none text-sm"/></div>
+                </div>
+                <div><label className="text-sm font-bold text-slate-700">Lokasi</label><input required value={isEditing.location} onChange={e=>setIsEditing({...isEditing, location:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none focus:border-indigo-500 text-sm"/></div>
+                <div><label className="text-sm font-bold text-slate-700">Deskripsi/Keterangan</label><textarea required value={isEditing.description} onChange={e=>setIsEditing({...isEditing, description:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none focus:border-indigo-500 h-24 text-sm"></textarea></div>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-3 rounded-xl mt-2 hover:bg-indigo-700 transition">Simpan Jadwal</button>
+              </form>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    function ViewMateri() {
+      const { materials, setMaterials, currentUser } = useContext(AppContext);
+      const [isAdding, setIsAdding] = useState(false);
+      const [newMat, setNewMat] = useState({ title: '', type: 'PDF' });
+
+      const handleAdd = (e) => {
+        e.preventDefault();
+        setMaterials([...materials, { id: Date.now(), title: newMat.title, type: newMat.type, date: new Date().toISOString().split('T')[0] }]);
+        setIsAdding(false);
+      };
+
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">Arsip & Notulensi</h2>
+            {currentUser.role === 'admin' && <button onClick={()=>setIsAdding(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition"><i className="fa-solid fa-upload mr-1"></i> Unggah</button>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {materials.map(m => (
+              <div key={m.id} className="bg-white p-5 rounded-3xl border shadow-sm flex items-center justify-between hover:shadow-md transition">
+                <div className="flex items-center space-x-4">
+                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl text-white ${m.type==='PDF'?'bg-red-500':'bg-blue-500'}`}><i className="fa-solid fa-file-lines"></i></div>
+                   <div>
+                     <h3 className="font-bold text-slate-800 line-clamp-1">{m.title}</h3>
+                     <p className="text-xs font-bold text-slate-400 mt-1">{m.date} • {m.type}</p>
+                   </div>
+                </div>
+                <button className="w-10 h-10 bg-slate-50 text-slate-500 rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition"><i className="fa-solid fa-download"></i></button>
+              </div>
+            ))}
+          </div>
+
+          {isAdding && currentUser.role === 'admin' && (
+            <Modal title="Unggah Arsip" onClose={()=>setIsAdding(false)}>
+              <form onSubmit={handleAdd} className="space-y-4">
+                <div><label className="text-sm font-bold text-slate-700">Judul Dokumen</label><input required value={newMat.title} onChange={e=>setNewMat({...newMat, title:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none focus:border-indigo-500"/></div>
+                <div><label className="text-sm font-bold text-slate-700">Tipe File</label><select value={newMat.type} onChange={e=>setNewMat({...newMat, type:e.target.value})} className="w-full border p-3 rounded-xl mt-1 outline-none"><option>PDF</option><option>DOCX</option><option>XLSX</option></select></div>
+                <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center bg-slate-50 flex flex-col items-center">
+                  <i className="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                  <p className="text-sm font-bold text-slate-500">Pilih file untuk diunggah (Simulasi)</p>
+                </div>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-3 rounded-xl hover:bg-indigo-700 transition">Simpan & Unggah</button>
+              </form>
+            </Modal>
+          )}
         </div>
       );
     }
@@ -366,3 +670,4 @@
   </script>
 </body>
 </html>
+```
